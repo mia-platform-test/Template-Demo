@@ -20,6 +20,10 @@ jobs:
         run: |
           kubectl config current-context
           kubectl get nodes
+          kubectl config current-context
+          kubectl get ns
+          kubectl auth can-i create deployment -n em-test-dev
+
   
       - name: Debug access
         run: |
@@ -32,8 +36,14 @@ jobs:
           KUBE_NAMESPACE: ${{ github.event.deployment.payload.variables.KUBE_NAMESPACE }}
           DEPLOY_FOLDER: environments/${{ github.event.deployment.environment }}
         run: |
-             echo "Deploying manifests in namespace $KUBE_NAMESPACE..."
-             kubectl apply -f $DEPLOY_FOLDER
+              echo "Deploying manifests in namespace $KUBE_NAMESPACE..."
+
+              echo "===== FILES TO APPLY ====="
+              find $DEPLOY_FOLDER -type f \( -name "*.yml" -o -name "*.yaml" \) ! -name "kustomization.yaml"
+              echo "=========================="
+          
+              find $DEPLOY_FOLDER -type f \( -name "*.yml" -o -name "*.yaml" \) ! -name "kustomization.yaml" \
+                -exec kubectl apply -f {} -n $KUBE_NAMESPACE \;
       - name: Update deployment status (success)
         if: success()
         uses: chrnorm/deployment-status@v2
